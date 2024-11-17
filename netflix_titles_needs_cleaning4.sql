@@ -329,6 +329,8 @@ limit 10000
 
 --               Understanding what content is available in different countries
 
+
+--  CONTENTS WITH THE MOST AND LEAST COUNTRIES
 select 
 title, country,
 (length(country) - length(replace(country, ',', ''))) + 1 as NumberOfCountries
@@ -358,6 +360,131 @@ from cte_diff_countries
 where NumberOfCountries > 1
 order by 3 desc
 ;
+
+-- NUMBER OF CONTENTS AVAILABLE BY DIFFERENT COUNTRIES
+
+select distinct(replace(country, ',', '')), count( replace(country, ',', ''))
+from netflix_titles_needs_cleaning4
+group by replace(country, ',', '')
+order by 2 desc
+limit 10000;
+
+select country, length(country) - length(replace(country, ',', '')) + 1 as num_country
+from netflix_titles_needs_cleaning4
+order by 2 desc
+limit 10000;
+
+with cte_countNumber as (
+select country, length(country) - length(replace(country, ',', '')) + 1 as num_country
+from netflix_titles_needs_cleaning4
+order by 2 desc
+limit 10000
+)
+select distinct num_country
+from cte_countNumber
+;
+
+create table nums (num int);
+
+insert into nums
+values (1),(2),(3),(4),(5),(6),(7),(8),(10),(12);
+
+select *
+from nums;
+
+select *
+from netflix_titles_needs_cleaning4
+join nums 
+on length(country) - length(replace(country, ',', '')) + 1 >= nums.num
+order by nums.num desc
+limit 10000
+;
+
+with cte_distinctCountry as (
+select *
+from netflix_titles_needs_cleaning4
+join nums 
+on length(country) - length(replace(country, ',', '')) + 1 >= nums.num
+limit 30000
+)
+select show_id,country,
+substring_index(
+substring_index(country,',',num), ',', -1) as single_country
+from cte_distinctCountry
+;
+
+-- Create a Temp table
+
+CREATE TEMPORARY TABLE `single_country_list` (
+  `show_id` varchar(50) DEFAULT NULL,
+  `type` varchar(50) DEFAULT NULL,
+  `title` varchar(600) DEFAULT NULL,
+  `director` varchar(600) DEFAULT NULL,
+  `country` varchar(600) DEFAULT NULL,
+  `date_added` date DEFAULT NULL,
+  `release_year` int DEFAULT NULL,
+  `rating` varchar(50) DEFAULT NULL,
+  `duration` varchar(50) DEFAULT NULL,
+  `listed_in` varchar(600) DEFAULT NULL,
+  `num` int,
+  `single_country` varchar(50) Default NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+insert into single_country_list
+with cte_distinctCountry as (
+select *
+from netflix_titles_needs_cleaning4
+join nums 
+on length(country) - length(replace(country, ',', '')) + 1 >= nums.num
+limit 30000
+)
+select *,
+substring_index(
+substring_index(country,',',num), ',', -1) as single_country
+from cte_distinctCountry
+;
+
+select *
+from single_country_list
+order by single_country
+limit 11000
+;
+
+update single_country_list
+set single_country = null
+where single_country = ''
+;
+
+select *
+from single_country_list
+order by single_country
+limit 11000
+;
+
+update single_country_list
+set single_country = Trim(single_country);
+
+select 
+type, single_country, count(single_country),
+date_added,
+case
+when year(date_added) <= 2012 then '2008 - 2012'
+when year(date_added) <= 2016 then '2013 - 2016'
+when year(date_added) <= 2021 then '2017 - 2021'
+end as year_added_range,
+release_year,
+case
+when release_year <= 1999 then '1925 - 1999'
+when release_year <= 2010 then '2000 - 2010'
+when release_year <= 2016 then '2011 - 2016'
+when release_year <= 2021 then '2017 - 2021'
+end as release_year_range
+from single_country_list
+group by single_country, type, date_added, year_added_range, release_year, release_year_range
+order by 2 
+limit 11000
+;
+
 
 
 
@@ -395,6 +522,118 @@ from netflix_titles_needs_cleaning4
 group by rating, `type`
 limit 10000
 ;
+
+--                  GROUP BY LISTED_IN
+
+select listed_in
+from netflix_titles_needs_cleaning4
+limit 10000;
+
+select listed_in, length(listed_in) - length(replace(listed_in, ',', '')) + 1 as countListedIn
+from netflix_titles_needs_cleaning4
+limit 10000;
+
+with cte_CountListedIn as (
+select listed_in, 
+length(listed_in) - length(replace(listed_in, ',', '')) + 1 as countListedIn
+from netflix_titles_needs_cleaning4
+limit 10000
+)
+select distinct countListedIn
+from cte_CountListedIn
+;
+
+-- create another table
+create table nums_listedin (num int);
+
+insert into nums_listedin
+values (1),(2),(3);
+
+select *
+from nums_listedin
+;
+
+select *
+from netflix_titles_needs_cleaning4
+join nums_listedin
+on length(listed_in) - length(replace(listed_in, ',', '')) + 1 >= nums_listedin.num
+limit 10000
+;
+
+with cte_single_list as (
+select *
+from netflix_titles_needs_cleaning4
+join nums_listedin
+on length(listed_in) - length(replace(listed_in, ',', '')) + 1 >= nums_listedin.num
+limit 10000
+)
+select *,
+substring_index(
+substring_index(listed_in,',',num), ',', -1) as single_listedIn
+from cte_single_list
+;
+
+
+CREATE TEMPORARY TABLE `single_listedIN_lists` (
+  `show_id` varchar(50) DEFAULT NULL,
+  `type` varchar(50) DEFAULT NULL,
+  `title` varchar(600) DEFAULT NULL,
+  `director` varchar(600) DEFAULT NULL,
+  `country` varchar(600) DEFAULT NULL,
+  `date_added` date DEFAULT NULL,
+  `release_year` int DEFAULT NULL,
+  `rating` varchar(50) DEFAULT NULL,
+  `duration` varchar(50) DEFAULT NULL,
+  `listed_in` varchar(600) DEFAULT NULL,
+  `num` int,
+  `single_listedIn` varchar(50)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+insert into single_listedIN_lists
+with cte_single_list as (
+select *
+from netflix_titles_needs_cleaning4
+join nums_listedin
+on length(listed_in) - length(replace(listed_in, ',', '')) + 1 >= nums_listedin.num
+limit 20000
+)
+select *,
+substring_index(
+substring_index(listed_in,',',num), ',', -1) as single_listedIn
+from cte_single_list
+;
+
+select *
+from single_listedIN_lists
+limit 20000
+;
+
+select distinct single_listedIn, row_number() over()
+from single_listedIN_lists
+limit 20000
+;
+
+update single_listedIN_lists
+set single_listedIn = trim(single_listedIn)
+;
+
+select distinct single_listedIn
+from single_listedIN_lists
+order by 1 
+limit 20000
+;
+
+select  single_listedIn, count(title)
+from single_listedIN_lists 
+group by single_listedIn
+order by 2 desc
+limit 20000
+;
+
+
+
+
+
 
 -- number of titles by rating
 
@@ -478,6 +717,15 @@ end as release_year_range
 from netflix_titles_needs_cleaning4
 group by `type`, year_added_range, release_year_range, year_added, release_year
 ;
+
+-- Number of cont
+
+
+
+
+
+
+
 
 
 
